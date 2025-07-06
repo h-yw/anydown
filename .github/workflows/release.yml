@@ -27,21 +27,26 @@ jobs:
       contents: write
 
     steps:
+      # 1. 检出代码 (在根目录)
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. 设置 Flutter 环境
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
           channel: 'stable'
 
+      # 3. 获取依赖 (在根目录执行)
       - name: Install dependencies
         run: flutter pub get
 
+      # 4. 构建 Windows 发布版应用 (在根目录执行)
       - name: Build Flutter App for Windows
         run: flutter build windows
 
+      # 5. 获取 Release 草稿信息
       - name: Get Release Draft Info
         id: get_release
         uses: release-drafter/release-drafter@v6
@@ -50,17 +55,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # --- 核心修复在这里 ---
+      # 6. 打包构建产物
       - name: Archive Release Files
         run: |
           $appName = "Anydown"
           $appVersion = "${{ steps.get_release.outputs.tag_name }}"
-          # 先进入到 Release 文件夹
-          Set-Location -Path build/windows/runner/Release
-          # 然后对文件夹内的所有内容 (*) 进行压缩，并指定输出路径
-          Compress-Archive -Path * -DestinationPath "../../${env:appName}-${env:appVersion}-Windows-Portable.zip"
+          # 直接使用正确的相对路径进行压缩
+          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath "${env:appName}-${env:appVersion}-Windows-Portable.zip"
         shell: powershell
 
+      # 7. 上传压缩包到 Release 草稿
       - name: Upload Artifact to Release Draft
         uses: actions/upload-release-asset@v1
         env:
