@@ -1,0 +1,38 @@
+# .github/release-drafter.yml
+
+# Release Drafter 的配置
+# 详细文档: https://github.com/release-drafter/release-drafter
+
+# 定义新版本的命名模板
+# $NEXT_PATCH_VERSION 会自动递增修订号 (例如, 从 v1.0.0 -> v1.0.1)
+name-template: 'v$NEXT_PATCH_VERSION'
+tag-template: 'v$NEXT_PATCH_VERSION'
+
+# 定义 Release 正文的分类和模板
+# 它会查找带有特定标签的 PR，并将其归入相应类别
+categories:
+  - title: '🚀 新功能 (Features)'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug 修复 (Bug Fixes)'
+    labels:
+      - 'fix'
+      - 'bug'
+  - title: '🛠️ 优化与重构 (Maintenance & Refactoring)'
+    labels:
+      - 'chore'
+      - 'refactor'
+      - 'maintenance'
+
+# 更改日志的模板
+# $CHANGES 会被上面分类好的列表替换
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+
+# Release 正文的整体模板
+template: |
+  ## 本次更新内容
+
+  $CHANGES
+
+  **完整更新日志**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$NEXT_PATCH_VERSION

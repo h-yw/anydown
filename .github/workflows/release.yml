@@ -1,0 +1,79 @@
+# .github/workflows/release.yml
+
+name: Draft Release & Build
+
+on:
+  push:
+    branches:
+      - main # 当代码推送到 main 分支时触发
+
+jobs:
+  # --- 任务一：更新或创建 Release 草稿 ---
+  update_release_draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          # 此处设置 config-name 是为了确保它能找到我们的配置文件
+          config-name: release-drafter.yml
+        env:
+          # GitHub 会自动提供这个 token，无需手动设置
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # --- 任务二：构建并上传应用 ---
+  build_and_upload:
+    needs: update_release_draft # 等待上一个任务完成后再开始
+    runs-on: windows-latest # 使用 Windows 环境来构建 Windows 应用
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 设置 Flutter 环境
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x' # 您可以指定您的 Flutter 版本
+          channel: 'stable'
+
+      # 3. 获取依赖
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 4. 构建 Windows 发布版应用
+      - name: Build Flutter App for Windows
+        run: flutter build windows
+
+      # 5. 查找由 release-drafter 创建的草稿
+      - name: Get Release Draft Info
+        id: get_release
+        uses: release-drafter/release-drafter@v6
+        with:
+          # 只获取信息，不进行发布
+          publish: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 6. 打包构建产物
+      - name: Archive Release Files
+        # ${env:appName} 和 ${env:appVersion} 是从上一步获取的变量
+        run: |
+          $appName = "Anydown" # 在这里设置您的应用名
+          $appVersion = "${{ steps.get_release.outputs.tag_name }}"
+          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath "${env:appName}-${env:appVersion}-Windows-Portable.zip"
+        shell: powershell
+
+      # 7. 上传压缩包到 Release 草稿
+      - name: Upload Artifact to Release Draft
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # 从上一步获取的 Release ID
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          # 压缩包的路径
+          asset_path: ./Anydown-${{ steps.get_release.outputs.tag_name }}-Windows-Portable.zip
+          # 在 Release 页面上显示的文件名
+          asset_name: Anydown-${{ steps.get_release.outputs.tag_name }}-Windows-Portable.zip
+          asset_content_type: application/zip
