@@ -5,13 +5,11 @@ name: Draft Release & Build
 on:
   push:
     branches:
-      - main # 当代码推送到 main 分支时触发
+      - main
 
 jobs:
-  # --- 任务一：更新或创建 Release 草稿 ---
   update_release_draft:
     runs-on: ubuntu-latest
-    # --- 核心修复 1：为这个任务授予内容写入权限 ---
     permissions:
       contents: write
       pull-requests: write
@@ -22,52 +20,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # --- 任务二：构建并上传应用 ---
   build_and_upload:
     needs: update_release_draft
     runs-on: windows-latest
-    # --- 核心修复 2：为这个任务也授予内容写入权限 ---
     permissions:
       contents: write
 
     steps:
-      # 1. 检出代码
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 设置 Flutter 环境
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
           channel: 'stable'
 
-      # 3. 获取依赖
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. 构建 Windows 发布版应用
       - name: Build Flutter App for Windows
         run: flutter build windows
 
-      # 5. 查找由 release-drafter 创建的草稿信息
       - name: Get Release Draft Info
         id: get_release
         uses: release-drafter/release-drafter@v6
         with:
-          publish: false # 只获取信息，不发布
+          publish: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 6. 打包构建产物
+      # --- 核心修复在这里 ---
       - name: Archive Release Files
         run: |
           $appName = "Anydown"
           $appVersion = "${{ steps.get_release.outputs.tag_name }}"
-          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath "${env:appName}-${env:appVersion}-Windows-Portable.zip"
+          # 先进入到 Release 文件夹
+          Set-Location -Path build/windows/runner/Release
+          # 然后对文件夹内的所有内容 (*) 进行压缩，并指定输出路径
+          Compress-Archive -Path * -DestinationPath "../../${env:appName}-${env:appVersion}-Windows-Portable.zip"
         shell: powershell
 
-      # 7. 上传压缩包到 Release 草稿
       - name: Upload Artifact to Release Draft
         uses: actions/upload-release-asset@v1
         env:
