@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - main
+  # 建议增加 workflow_dispatch，以便可以手动触发构建，方便调试或重新构建
+  workflow_dispatch:
 
 jobs:
   update_release_draft:
@@ -13,6 +15,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      upload_url: ${{ steps.drafter.outputs.upload_url }}
+      tag_name: ${{ steps.drafter.outputs.tag_name }}
     steps:
       - uses: release-drafter/release-drafter@v6
         with:
@@ -25,7 +30,9 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
-
+    env:
+      APP_NAME: Anydown
+      RELEASE_TAG: ${{ needs.update_release_draft.outputs.tag_name }}
     steps:
       # 1. 检出代码 (在根目录)
       - name: Checkout code
@@ -46,23 +53,17 @@ jobs:
       - name: Build Flutter App for Windows
         run: flutter build windows
 
-      # 5. 获取 Release 草稿信息
-      - name: Get Release Draft Info
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         id: get_release
-        uses: release-drafter/release-drafter@v6
         with:
-          publish: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 6. 打包构建产物
-      - name: Archive Release Files
-        run: |
-          $appName = "Anydown"
-          $appVersion = "${{ steps.get_release.outputs.tag_name }}"
-          # 直接使用正确的相对路径进行压缩
-          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath "${env:appName}-${env:appVersion}-Windows-Portable.zip"
-        shell: powershell
+          # 产物的名称，下载时会是这个名字的 zip 文件 (e.g., build-artifacts.zip)
+          name: '${{ env.APP_NAME }}-${{ env.RELEASE_TAG }}-Windows-Portable.zip'
+          # 要打包和上传的路径。可以是单个文件或目录。
+          # '.' 代表当前目录下的 build 文件夹
+          path: ./build
+          if-no-files-found: error
+          compression-leve: 9
 
       # 7. 上传压缩包到 Release 草稿
       - name: Upload Artifact to Release Draft
@@ -70,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ./Anydown-${{ steps.get_release.outputs.tag_name }}-Windows-Portable.zip
-          asset_name: Anydown-${{ steps.get_release.outputs.tag_name }}-Windows-Portable.zip
+          upload_url: ${{ steps.get_release.outputs.artifact-url }}
+          asset_path: ./Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+          asset_name: Anydown-${{ env.RELEASE_TAG }}}-Windows-Portable.zip
           asset_content_type: application/zip
