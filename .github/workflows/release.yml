@@ -50,7 +50,7 @@ jobs:
 
       - name: Compress build output
         run: |
-          Compress-Archive -Path build\windows\runner\Release\*  -DestinationPath Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\*  -DestinationPath Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
       
       - name: Upload ZIP as artifact
         uses: actions/upload-artifact@v4
