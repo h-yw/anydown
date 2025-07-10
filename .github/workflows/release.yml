@@ -50,15 +50,41 @@ jobs:
 
       - name: Compress build output
         run: |
-          powershell Compress-Archive -Path build/windows/runner/Release/* `
-            -DestinationPath Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
-
-      - name: Upload zipped artifact to GitHub
+          Compress-Archive -Path build\windows\runner/Release\*  -DestinationPath Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+      
+      - name: Upload ZIP as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name:  anydown
+          path: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+          
+  draft-release:
+    needs: build_and_upload
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+  
+      - name: build result
+        uses: actions/download-artifact@v3
+        with:
+          name:  anydown
+  
+      - name: Draft Release
+        id: draft_release
+        uses: release-drafter/release-drafter@v6.0.0
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Upload ZIP to Draft Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.update_release_draft.outputs.upload_url }}
-          asset_path: ./Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
-          asset_name: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+          upload_url: ${{ steps.draft_release.outputs.upload_url }}
+          asset_path: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip.zip
+          asset_name: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip.zip
           asset_content_type: application/zip
