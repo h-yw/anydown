@@ -8,30 +8,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  update_release_draft:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    outputs:
-      upload_url: ${{ steps.drafter.outputs.upload_url }}
-      tag_name: ${{ steps.drafter.outputs.tag_name }}
-    steps:
-      - uses: release-drafter/release-drafter@v6
-        id: drafter
-        with:
-          config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build_and_upload:
-    needs: update_release_draft
     runs-on: windows-latest
     permissions:
       contents: write
     env:
       APP_NAME: Anydown
-      RELEASE_TAG: ${{ needs.update_release_draft.outputs.tag_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,13 +32,13 @@ jobs:
 
       - name: Compress build output
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\*  -DestinationPath Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\*  -DestinationPath anydown.zip
       
       - name: Upload ZIP as artifact
         uses: actions/upload-artifact@v4
         with:
           name:  anydown
-          path: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip
+          path: anydown.zip
           
   draft-release:
     needs: build_and_upload
@@ -69,7 +51,7 @@ jobs:
       - name: build result
         uses: actions/download-artifact@v3
         with:
-          name:  anydown
+          name: anydown
   
       - name: Draft Release
         id: draft_release
@@ -85,6 +67,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.draft_release.outputs.upload_url }}
-          asset_path: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip.zip
-          asset_name: Anydown-${{ env.RELEASE_TAG }}-Windows-Portable.zip.zip
+          asset_path: Anydown-${{ steps.draft_release.outputs.tag_name }}-Windows-Portable.zip.zip
+          asset_name: Anydown-${{ steps.draft_release.outputs.tag_name }}-Windows-Portable.zip.zip
           asset_content_type: application/zip
