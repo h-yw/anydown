@@ -43,6 +43,10 @@ jobs:
   draft-release:
     needs: build_and_upload
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
   
     steps:
       - name: Checkout code
