@@ -14,20 +14,63 @@ categories:
   - title: '🚀 新功能 (Features)'
     labels:
       - 'feature'
+      - 'feat'
       - 'enhancement'
   - title: '🐛 Bug 修复 (Bug Fixes)'
     labels:
       - 'fix'
       - 'bug'
+      - "bugfix"
   - title: '🛠️ 优化与重构 (Maintenance & Refactoring)'
     labels:
       - 'chore'
       - 'refactor'
       - 'maintenance'
-
+  - title: '📚 文档更新'
+    labels:
+      - 'docs'
+  - title: '🎨 代码样式'
+    labels:
+      - 'style'
+  - title: '🔄 代码重构'
+    labels:
+      - 'refactor'
+  - title: '⚡ 性能优化'
+    labels:
+      - 'perf'
+  - title: '🧪 测试'
+    labels:
+      - 'test'
+  - title: "🔧 构建系统"
+    labels:
+      - 'build'
+  - title: "🛠 持续集成"
+    labels:
+      - 'ci'
+  - title: "🧰 维护和工具"
+    labels:
+      - "chore"
+      - "maintenance"
 # 更改日志的模板
 # $CHANGES 会被上面分类好的列表替换
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+
+# change-title-escapes: '\[`*_{}():'
+version-resolver:
+  major:
+    labels:
+      - "major"
+      - 'breaking-change'
+  minor:
+    labels:
+      - "minor"
+      - 'feat'
+  patch:
+    labels:
+      - "patch"
+      - 'fix'
+
+  default: patch
 
 # Release 正文的整体模板
 template: |
