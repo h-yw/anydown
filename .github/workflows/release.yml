@@ -71,6 +71,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.draft_release.outputs.upload_url }}
-          asset_path: Anydown-${{ steps.draft_release.outputs.tag_name }}-Windows-Portable.zip
+          asset_path: anydown.zip
           asset_name: Anydown-${{ steps.draft_release.outputs.tag_name }}-Windows-Portable.zip
           asset_content_type: application/zip
