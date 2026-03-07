@@ -62,8 +62,8 @@ class _AboutPageState extends State<AboutPage> {
                   context: context,
                   applicationName: _packageInfo.appName,
                   applicationVersion: _packageInfo.version,
-                  applicationIcon:  Padding(
-                    padding: EdgeInsets.all(8.0),
+                  applicationIcon: Padding( // ignore: prefer_const_constructors
+                    padding: const EdgeInsets.all(8.0),
                     child: Image.asset('assets/images/logo.png', width: 48),
                   ),
                 );

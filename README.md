@@ -113,3 +113,5 @@
 本项目采用 [MIT 许可证](LICENSE)。
 
 核心下载器 `N_m3u8DL-RE` 也采用 MIT 许可证。应用内使用的所有开源组件的许可证信息都可以在“关于”页面的“查看开源许可”中找到。
+
+https://m3u8.vhmzy.com/videos/202507/07/686bb27655d6af43068e102a/b07cb5/index.m3u8

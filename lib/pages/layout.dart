@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../utils/settings_service.dart';
-// 我们稍后会创建这个文件
 
 // 用于管理导航状态的 ChangeNotifier
 class NavigationState extends ChangeNotifier {
