@@ -40,10 +40,8 @@ class AppSettings extends ChangeNotifier {
   bool concurrentDownload = false;
   String logLevel = 'INFO';
 
-  AppSettings() {
-    loadSettings();
-  }
-// 在 AppSettings 类中
+  AppSettings();
+
   Future<void> loadSettings() async {
     _prefs = await SharedPreferences.getInstance();
     // 已有设置

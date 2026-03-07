@@ -119,9 +119,6 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildTextField('自定义请求头', _headersController, '格式: key:value;key2:value2'),
 
           _buildCategoryTitle('文件与合并'),
-          _buildSwitchTile('完成后删除临时文件', widget.settings.deleteAfterDone, (val) {
-            setState(() => widget.settings.deleteAfterDone = val);
-          }),
           _buildSwitchTile('二进制合并', widget.settings.binaryMerge, (val) {
             setState(() => widget.settings.binaryMerge = val);
           }),
