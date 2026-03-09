@@ -25,12 +25,19 @@ class _DownloadPageState extends State<DownloadPage> {
   void initState() {
     super.initState();
     _downloadService = DownloadService(settings: widget.settings);
+    // 从设置中恢复上次保存的路径
+    if (widget.settings.defaultSavePath.isNotEmpty) {
+      _savePath = widget.settings.defaultSavePath;
+    }
   }
 
   Future<void> _selectSaveFolder() async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory != null) {
       setState(() => _savePath = selectedDirectory);
+      // 同时更新到全局设置并保存
+      widget.settings.defaultSavePath = selectedDirectory;
+      widget.settings.saveSettings();
     }
   }
 

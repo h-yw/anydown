@@ -9,6 +9,8 @@ class AppSettings extends ChangeNotifier {
   int threadCount = 16;
   int retryCount = 3;
   String tmpDir = ''; // 临时文件目录
+  String defaultSavePath = ''; // 默认保存目录 (持久化)
+  String ffmpegPath = ''; // FFmpeg 可执行文件路径
 
   // 文件设置
   bool deleteAfterDone = true;
@@ -67,6 +69,8 @@ class AppSettings extends ChangeNotifier {
     concurrentDownload = _prefs.getBool('concurrentDownload') ?? false;
     logLevel = _prefs.getString('logLevel') ?? 'INFO';
     tmpDir = _prefs.getString('tmpDir') ?? '';
+    defaultSavePath = _prefs.getString('defaultSavePath') ?? '';
+    ffmpegPath = _prefs.getString('ffmpegPath') ?? '';
 
     notifyListeners();
   }
@@ -95,6 +99,8 @@ class AppSettings extends ChangeNotifier {
     await _prefs.setBool('concurrentDownload', concurrentDownload);
     await _prefs.setString('logLevel', logLevel);
     await _prefs.setString('tmpDir', tmpDir);
+    await _prefs.setString('defaultSavePath', defaultSavePath);
+    await _prefs.setString('ffmpegPath', ffmpegPath);
 
 
     notifyListeners();

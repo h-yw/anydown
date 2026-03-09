@@ -21,6 +21,8 @@ class _SettingsPageState extends State<SettingsPage> {
   late TextEditingController _maxSpeedController;
   late TextEditingController _keyFileController;
   late TextEditingController _tmpDirController;
+  late TextEditingController _defaultSavePathController;
+  late TextEditingController _ffmpegPathController; // <-- 新增 FFmpeg 控制器 // <-- 新增控制器
 
   @override
   void initState() {
@@ -35,6 +37,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _maxSpeedController = TextEditingController(text: widget.settings.maxSpeed);
     _keyFileController = TextEditingController(text: widget.settings.keyTextFile);
     _tmpDirController = TextEditingController(text: widget.settings.tmpDir);
+    _defaultSavePathController = TextEditingController(text: widget.settings.defaultSavePath);
+    _ffmpegPathController = TextEditingController(text: widget.settings.ffmpegPath); // 初始化值 // 初始化值
 
   }
 
@@ -51,6 +55,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _maxSpeedController.dispose();
     _keyFileController.dispose();
     _tmpDirController.dispose();
+    _defaultSavePathController.dispose();
+    _ffmpegPathController.dispose(); // 释放资源 // 释放资源
 
     super.dispose();
   }
@@ -65,6 +71,8 @@ class _SettingsPageState extends State<SettingsPage> {
     widget.settings.maxSpeed = _maxSpeedController.text.trim();
     widget.settings.keyTextFile = _keyFileController.text.trim();
     widget.settings.tmpDir = _tmpDirController.text.trim();
+    widget.settings.defaultSavePath = _defaultSavePathController.text.trim();
+    widget.settings.ffmpegPath = _ffmpegPathController.text.trim(); // 保存值 // 保存值
 
 
     // 对于 Switch 和 Dropdown，值已经在 onChanged 中直接更新了 widget.settings
@@ -101,6 +109,11 @@ class _SettingsPageState extends State<SettingsPage> {
             setState(() => widget.settings.concurrentDownload = val);
           }),
           _buildDirectoryPicker(
+            '默认保存目录 (可选)',
+            _defaultSavePathController,
+            '为空则使用系统默认下载目录',
+          ),
+          _buildDirectoryPicker(
             '临时文件目录 (可选)',
             _tmpDirController,
             '将临时分片文件存放到指定目录',
@@ -128,6 +141,16 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSwitchTile('混流时不写入日期信息', widget.settings.noDateInfo, (val) {
             setState(() => widget.settings.noDateInfo = val);
           }),
+          _buildDirectoryPicker(
+            'FFmpeg 可执行文件路径 (可选)',
+            _ffmpegPathController,
+            '例如: /opt/homebrew/bin/ffmpeg',
+            isFolder: false,
+          ),
+          Text(
+            '提示: 配置 FFmpeg 后将支持混流(Muxing)，解决音画同步及画面丢失问题。',
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          ),
 
           _buildCategoryTitle('字幕设置'),
           _buildDropdown('字幕格式', widget.settings.subtitleFormat, ['SRT', 'VTT'], (val) {
@@ -198,8 +221,8 @@ class _SettingsPageState extends State<SettingsPage> {
     onChanged: onChanged,
     contentPadding: EdgeInsets.zero,
   );
-  // --- 新增一个通用的文件夹选择器 Widget ---
-  Widget _buildDirectoryPicker(String label, TextEditingController controller, String hint) {
+  // --- 修改通用的文件夹/文件选择器 Widget ---
+  Widget _buildDirectoryPicker(String label, TextEditingController controller, String hint, {bool isFolder = true}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -216,14 +239,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.folder_open),
+            icon: Icon(isFolder ? Icons.folder_open : Icons.file_open_outlined),
             onPressed: () async {
-              String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-              if (selectedDirectory != null) {
-                controller.text = selectedDirectory;
+              String? selectedPath = isFolder 
+                  ? await FilePicker.platform.getDirectoryPath()
+                  : (await FilePicker.platform.pickFiles(allowMultiple: false))?.files.single.path;
+              if (selectedPath != null) {
+                controller.text = selectedPath;
               }
             },
-            tooltip: '选择文件夹',
+            tooltip: isFolder ? '选择文件夹' : '选择文件',
           ),
         ],
       ),
