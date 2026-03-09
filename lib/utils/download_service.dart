@@ -128,6 +128,11 @@ class DownloadService {
     if (settings.logLevel != 'INFO') {
       args.addAll(['--log-level', settings.logLevel]);
     }
+    
+    // FFmpeg 路径
+    if (settings.ffmpegPath.isNotEmpty) {
+      args.addAll(['--ffmpeg-binary-path', settings.ffmpegPath]);
+    }
 
     return args;
   }
@@ -232,6 +237,14 @@ class DownloadService {
       } else {
         // 3. 否则作为常规日志
         if (settings.noLog && logPattern.hasMatch(trimmedLine)) continue;
+        
+        // 特殊：检测二进制合并警告
+        if (trimmedLine.contains('正在使用二进制合并') || trimmedLine.contains('后备: [二进制合并]')) {
+          task.updateProgress(task.progress.copyWith(
+            taskDescription: '警告: 缺少 FFmpeg，正在使用不稳定的二进制合并',
+          ));
+        }
+
         task.addLog(trimmedLine);
       }
     }

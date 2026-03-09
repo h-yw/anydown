@@ -52,4 +52,24 @@ class DownloadProgress {
     }
     return DownloadProgress();
   }
+
+  DownloadProgress copyWith({
+    String? segments,
+    double? percentage,
+    String? speed,
+    String? eta,
+    String? taskDescription,
+    String? downloadedSize,
+    String? totalSize,
+  }) {
+    return DownloadProgress(
+      segments: segments ?? this.segments,
+      percentage: percentage ?? this.percentage,
+      speed: speed ?? this.speed,
+      eta: eta ?? this.eta,
+      taskDescription: taskDescription ?? this.taskDescription,
+      downloadedSize: downloadedSize ?? this.downloadedSize,
+      totalSize: totalSize ?? this.totalSize,
+    );
+  }
 }
