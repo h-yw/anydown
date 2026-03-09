@@ -159,6 +159,7 @@ class DownloadService {
   Future<void> runDownload(DownloadTask task) async {
     task.updateStatus(TaskStatus.running);
     task.updateStage(TaskStage.analyzing); // 初始阶段：解析中
+    task.updateStage(TaskStage.analyzing); // 初始阶段：解析中
     task.addLog('准备下载...');
     try {
       final downloaderPath = await getDownloaderPath();
