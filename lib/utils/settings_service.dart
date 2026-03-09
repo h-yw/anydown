@@ -11,6 +11,11 @@ class AppSettings extends ChangeNotifier {
   String tmpDir = ''; // 临时文件目录
   String defaultSavePath = ''; // 默认保存目录 (持久化)
   String ffmpegPath = ''; // FFmpeg 可执行文件路径
+  bool autoSelect = true; // 自动选择所有类型的最佳轨道
+  String muxFormat = 'mp4'; // 混流容器格式
+  String savePattern = ''; // 文件名命名模板
+  bool appendUrlParams = false; // 将 Url Params 添加至分片
+  bool checkSegmentsCount = true; // 检测分片数量匹配
 
   // 文件设置
   bool deleteAfterDone = true;
@@ -71,6 +76,11 @@ class AppSettings extends ChangeNotifier {
     tmpDir = _prefs.getString('tmpDir') ?? '';
     defaultSavePath = _prefs.getString('defaultSavePath') ?? '';
     ffmpegPath = _prefs.getString('ffmpegPath') ?? '';
+    autoSelect = _prefs.getBool('autoSelect') ?? true;
+    muxFormat = _prefs.getString('muxFormat') ?? 'mp4';
+    savePattern = _prefs.getString('savePattern') ?? '';
+    appendUrlParams = _prefs.getBool('appendUrlParams') ?? false;
+    checkSegmentsCount = _prefs.getBool('checkSegmentsCount') ?? true;
 
     notifyListeners();
   }
@@ -101,6 +111,11 @@ class AppSettings extends ChangeNotifier {
     await _prefs.setString('tmpDir', tmpDir);
     await _prefs.setString('defaultSavePath', defaultSavePath);
     await _prefs.setString('ffmpegPath', ffmpegPath);
+    await _prefs.setBool('autoSelect', autoSelect);
+    await _prefs.setString('muxFormat', muxFormat);
+    await _prefs.setString('savePattern', savePattern);
+    await _prefs.setBool('appendUrlParams', appendUrlParams);
+    await _prefs.setBool('checkSegmentsCount', checkSegmentsCount);
 
 
     notifyListeners();

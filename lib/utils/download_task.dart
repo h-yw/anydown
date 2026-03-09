@@ -19,7 +19,7 @@ class DownloadTask extends ChangeNotifier {
   final String id; // 每个任务的唯一标识
   final String m3u8Url;
   final String savePath;
-  final String saveName;
+  String saveName; // 改为可变，以支持动态更新最终文件名
   final String tmpPath; // <-- 新增：存储此任务的临时文件夹路径
 
 
@@ -54,6 +54,14 @@ class DownloadTask extends ChangeNotifier {
   void updateStage(TaskStage newStage) {
     if (stage != newStage) {
       stage = newStage;
+      notifyListeners();
+    }
+  }
+
+  // 更新保存文件名（例如解析出真实标题后）
+  void updateSaveName(String newName) {
+    if (saveName != newName) {
+      saveName = newName;
       notifyListeners();
     }
   }

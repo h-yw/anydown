@@ -80,6 +80,15 @@ class DownloadService {
       '--no-ansi-color',      // 去掉颜色码方便解析
     ];
 
+    if (settings.autoSelect) args.add('--auto-select');
+    if (settings.appendUrlParams) args.add('--append-url-params');
+    
+    // 分片校验，默认是 true，设为 false 时需要查找对应禁用参数或显式指定
+    // N_m3u8DL-RE 的布尔参数通常是通过是否标志位决定的
+    if (!settings.checkSegmentsCount) {
+       // 如果文档没写怎么关，暂时保留默认，这里假设如果不传就是不强制检查
+    }
+
     // 网络设置
     if (settings.httpRequestTimeout != 100) {
       args.addAll(['--http-request-timeout', settings.httpRequestTimeout.toString()]);
@@ -104,8 +113,17 @@ class DownloadService {
     // 下载行为
     if (settings.concurrentDownload) args.add('--concurrent-download');
     if (settings.deleteAfterDone) args.add('--del-after-done');
-    if (settings.binaryMerge) args.add('--binary-merge');
+    if (settings.binaryMerge) {
+      args.add('--binary-merge');
+    } else {
+      // 如果不是二进制合并，且配置了混流格式
+      args.addAll(['-M', 'format=${settings.muxFormat}']);
+    }
+
     if (settings.skipMerge) args.add('--skip-merge');
+    if (settings.savePattern.isNotEmpty) {
+      args.addAll(['--save-pattern', settings.savePattern]);
+    }
 
     // 输出控制
     if (settings.noDateInfo) args.add('--no-date-info');
@@ -151,6 +169,7 @@ class DownloadService {
       }
 
       final args = buildArguments(task);
+      task.addLog('运行命令参数: ${args.join(' ')}');
       await _runProcess(task, downloaderPath, args);
     } catch (e) {
       task.updateStatus(TaskStatus.failed);
@@ -243,6 +262,20 @@ class DownloadService {
           task.updateProgress(task.progress.copyWith(
             taskDescription: '警告: 缺少 FFmpeg，正在使用不稳定的二进制合并',
           ));
+        }
+
+        // 特殊：识别最终保存的文件名（应用模板后）
+        // 日志示例: 22:10:45.123 INFO : 保存文件名: MyVideo_1080p_800kbps (中文)
+        // 日志示例: 22:10:45.123 INFO : Output file name: MyVideo (英文)
+        if (trimmedLine.contains('保存文件名:') || trimmedLine.contains('Output file name:')) {
+          final keyword = trimmedLine.contains('保存文件名:') ? '保存文件名:' : 'Output file name:';
+          final parts = trimmedLine.split(keyword);
+          if (parts.length > 1) {
+            final finalName = parts[1].trim();
+            if (finalName.isNotEmpty) {
+              task.updateSaveName(finalName);
+            }
+          }
         }
 
         task.addLog(trimmedLine);

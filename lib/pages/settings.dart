@@ -22,7 +22,8 @@ class _SettingsPageState extends State<SettingsPage> {
   late TextEditingController _keyFileController;
   late TextEditingController _tmpDirController;
   late TextEditingController _defaultSavePathController;
-  late TextEditingController _ffmpegPathController; // <-- 新增 FFmpeg 控制器 // <-- 新增控制器
+  late TextEditingController _ffmpegPathController;
+  late TextEditingController _savePatternController; // 命名模板控制器
 
   @override
   void initState() {
@@ -38,7 +39,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _keyFileController = TextEditingController(text: widget.settings.keyTextFile);
     _tmpDirController = TextEditingController(text: widget.settings.tmpDir);
     _defaultSavePathController = TextEditingController(text: widget.settings.defaultSavePath);
-    _ffmpegPathController = TextEditingController(text: widget.settings.ffmpegPath); // 初始化值 // 初始化值
+    _ffmpegPathController = TextEditingController(text: widget.settings.ffmpegPath);
+    _savePatternController = TextEditingController(text: widget.settings.savePattern);
 
   }
 
@@ -56,7 +58,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _keyFileController.dispose();
     _tmpDirController.dispose();
     _defaultSavePathController.dispose();
-    _ffmpegPathController.dispose(); // 释放资源 // 释放资源
+    _ffmpegPathController.dispose();
+    _savePatternController.dispose();
 
     super.dispose();
   }
@@ -72,7 +75,8 @@ class _SettingsPageState extends State<SettingsPage> {
     widget.settings.keyTextFile = _keyFileController.text.trim();
     widget.settings.tmpDir = _tmpDirController.text.trim();
     widget.settings.defaultSavePath = _defaultSavePathController.text.trim();
-    widget.settings.ffmpegPath = _ffmpegPathController.text.trim(); // 保存值 // 保存值
+    widget.settings.ffmpegPath = _ffmpegPathController.text.trim();
+    widget.settings.savePattern = _savePatternController.text.trim();
 
 
     // 对于 Switch 和 Dropdown，值已经在 onChanged 中直接更新了 widget.settings
@@ -103,8 +107,17 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildCategoryTitle('下载设置'),
-          _buildTextField('下载线程数', _threadController, '默认: 16', keyboardType: TextInputType.number),
-          _buildTextField('分片下载重试次数', _retryController, '默认: 3', keyboardType: TextInputType.number),
+          _buildSwitchTile('自动选择最佳轨道 (推荐)', widget.settings.autoSelect, (val) {
+            setState(() => widget.settings.autoSelect = val);
+          }),
+          _buildSwitchTile('透传 URL 参数到分片', widget.settings.appendUrlParams, (val) {
+            setState(() => widget.settings.appendUrlParams = val);
+          }),
+          _buildSwitchTile('严格校验分片数量', widget.settings.checkSegmentsCount, (val) {
+            setState(() => widget.settings.checkSegmentsCount = val);
+          }),
+          _buildNumberInput('最大线程数', _threadController, '默认: 16'),
+          _buildTextField('分片下载重试次数', _retryController, '默认: 3'),
           _buildSwitchTile('并发下载音视频字幕', widget.settings.concurrentDownload, (val) {
             setState(() => widget.settings.concurrentDownload = val);
           }),
@@ -123,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
           }),
 
           _buildCategoryTitle('网络设置'),
-          _buildTextField('HTTP请求超时(秒)', _timeoutController, '默认: 100', keyboardType: TextInputType.number),
+          _buildNumberInput('HTTP请求超时(秒)', _timeoutController, '默认: 100'),
           _buildTextField('全局限速', _maxSpeedController, '例如: 10M 或 500K'),
           _buildSwitchTile('使用系统代理', widget.settings.useSystemProxy, (val) {
             setState(() => widget.settings.useSystemProxy = val);
@@ -149,6 +162,15 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Text(
             '提示: 配置 FFmpeg 后将支持混流(Muxing)，解决音画同步及画面丢失问题。',
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 8),
+          _buildDropdown('混流容器格式', widget.settings.muxFormat, ['mp4', 'mkv', 'ts'], (val) {
+            setState(() => widget.settings.muxFormat = val!);
+          }),
+          _buildTextField('保存命名模板', _savePatternController, '例: <SaveName>_<Resolution>'),
+          Text(
+            '支持变量: <SaveName>, <Resolution>, <Bandwidth>, <Codecs> 等',
             style: TextStyle(fontSize: 11, color: Colors.grey[600]),
           ),
 
@@ -182,45 +204,63 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
   // --- 新增一个通用的 Dropdown Widget ---
-  Widget _buildDropdown(String title, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
+        value: value,
         decoration: InputDecoration(
-          labelText: title,
+          labelText: label,
           border: const OutlineInputBorder(),
         ),
-        value: value,
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item),
-          );
-        }).toList(),
+        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
         onChanged: onChanged,
       ),
     );
   }
+
   Widget _buildCategoryTitle(String title) => Padding(
     padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
     child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.blue)),
   );
 
-  Widget _buildTextField(String label, TextEditingController controller, String hint, {TextInputType? keyboardType}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
-    child: TextField(
-      controller: controller,
-      decoration: InputDecoration(labelText: label, hintText: hint, border: const OutlineInputBorder()),
-      keyboardType: keyboardType,
-    ),
-  );
+  Widget _buildTextField(String label, TextEditingController controller, String hint) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
 
-  Widget _buildSwitchTile(String title, bool value, ValueChanged<bool> onChanged) => SwitchListTile(
-    title: Text(title),
-    value: value,
-    onChanged: onChanged,
-    contentPadding: EdgeInsets.zero,
-  );
+  Widget _buildNumberInput(String label, TextEditingController controller, String hint) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          border: const OutlineInputBorder(),
+        ),
+        keyboardType: TextInputType.number,
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile(String title, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      title: Text(title),
+      value: value,
+      onChanged: onChanged,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
   // --- 修改通用的文件夹/文件选择器 Widget ---
   Widget _buildDirectoryPicker(String label, TextEditingController controller, String hint, {bool isFolder = true}) {
     return Padding(
