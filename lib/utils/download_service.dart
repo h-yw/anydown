@@ -135,6 +135,7 @@ class DownloadService {
   /// 启动下载任务
   Future<void> runDownload(DownloadTask task) async {
     task.updateStatus(TaskStatus.running);
+    task.updateStage(TaskStage.analyzing); // 初始阶段：解析中
     task.addLog('准备下载...');
     try {
       final downloaderPath = await getDownloaderPath();
@@ -166,13 +167,24 @@ class DownloadService {
       );
 
       final exitCode = await process.exitCode;
+      
+      // 执行额外清理（针对取消或失败的情况，N_m3u8DL-RE 可能没来得及清理）
+      if (settings.deleteAfterDone) {
+        task.isCleaningUp = true;
+        task.updateStage(TaskStage.completing);
+        await deleteTempFiles(task.tmpPath);
+        task.isCleaningUp = false;
+      }
+
       if (task.status == TaskStatus.running) {
         task.updateStatus(exitCode == 0 ? TaskStatus.completed : TaskStatus.failed);
         task.addLog(exitCode == 0 ? '\n下载成功！' : '\n下载失败，退出码: $exitCode');
       }
     } catch (e) {
-      task.updateStatus(TaskStatus.failed);
-      task.addLog('进程启动失败: $e');
+      if (task.status != TaskStatus.canceled) {
+        task.updateStatus(TaskStatus.failed);
+        task.addLog('进程启动失败: $e');
+      }
     }
   }
 
@@ -182,17 +194,45 @@ class DownloadService {
   /// 解析下载器输出，更新进度或追加日志
   void _parseOutput(String data, DownloadTask task) {
     final logPattern = RegExp(r'^\d{2}:\d{2}:\d{2}\.\d{3}\s+(INFO|WARN)\s+:\s+');
+    
+    // 关键阶段识别关键词
+    final Map<String, TaskStage> stageKeywords = {
+      '正在解析媒体信息': TaskStage.analyzing,
+      '开始下载': TaskStage.downloading,
+      '开始合并': TaskStage.merging,
+      '所有任务已完成': TaskStage.completing,
+      '任务已取消': TaskStage.none,
+      '下载失败': TaskStage.none,
+    };
+
     // 去除 ANSI 转义码后再解析
     final cleanData = data.replaceAll(_ansiEscape, '');
     final lines = cleanData.trim().split(RegExp(r'[\r\n]+'));
+    
     for (final line in lines) {
-      if (line.trim().isEmpty) continue;
-      final newProgress = DownloadProgress.fromLine(line);
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue;
+
+      // 1. 尝试识别阶段切换
+      for (final entry in stageKeywords.entries) {
+        if (trimmedLine.contains(entry.key)) {
+          task.updateStage(entry.value);
+          break;
+        }
+      }
+
+      // 2. 尝试从进度行更新
+      final newProgress = DownloadProgress.fromLine(trimmedLine);
       if (newProgress.taskDescription != "等待任务开始...") {
         task.updateProgress(newProgress);
+        // 如果能解析到进度，确保阶段是下载中
+        if (task.stage == TaskStage.analyzing) {
+            task.updateStage(TaskStage.downloading);
+        }
       } else {
-        if (settings.noLog && logPattern.hasMatch(line)) continue;
-        task.addLog(line);
+        // 3. 否则作为常规日志
+        if (settings.noLog && logPattern.hasMatch(trimmedLine)) continue;
+        task.addLog(trimmedLine);
       }
     }
   }

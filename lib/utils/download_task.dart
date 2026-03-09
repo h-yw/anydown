@@ -2,8 +2,17 @@ import 'dart:io';
 import 'package:anydown/utils/download_progress.dart';
 import 'package:flutter/material.dart';
 
-// 定义下载任务的几种状态
+// 定义下载任务的几种主要状态
 enum TaskStatus { queued, running, completed, failed, canceled }
+
+// 定义任务执行的具体阶段，用于更细粒度的进度展示
+enum TaskStage { 
+  none,       // 无 
+  analyzing,  // 正在解析媒体信息
+  downloading,// 正在下载分片
+  merging,    // 正在合并/转换格式
+  completing  // 正在完成清理
+}
 
 // DownloadTask 类，用于封装单个下载任务的所有信息
 class DownloadTask extends ChangeNotifier {
@@ -15,9 +24,11 @@ class DownloadTask extends ChangeNotifier {
 
 
   TaskStatus status = TaskStatus.queued;
+  TaskStage stage = TaskStage.none; // <-- 新增阶段跟踪
   DownloadProgress progress = DownloadProgress();
   StringBuffer logOutput = StringBuffer(); // 使用 StringBuffer 以提高性能
   Process? process; // 用于控制和取消进程
+  bool isCleaningUp = false; // <-- 新增：标记是否正在进行清理操作
 
   DownloadTask({
     required this.m3u8Url,
@@ -39,9 +50,21 @@ class DownloadTask extends ChangeNotifier {
     notifyListeners(); // 通知UI更新
   }
 
+  // 更新阶段
+  void updateStage(TaskStage newStage) {
+    if (stage != newStage) {
+      stage = newStage;
+      notifyListeners();
+    }
+  }
+
   // 更新状态
   void updateStatus(TaskStatus newStatus) {
     status = newStatus;
+    // 如果状态变为完成，强制设置阶段为 none
+    if (status == TaskStatus.completed) {
+      stage = TaskStage.none;
+    }
     notifyListeners(); // 通知UI更新
   }
 

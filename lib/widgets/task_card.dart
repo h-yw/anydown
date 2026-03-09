@@ -50,7 +50,21 @@ class _TaskCardState extends State<TaskCard> {
       case TaskStatus.running:
         statusIconData = Icons.downloading_rounded;
         statusColor = Colors.blueAccent;
-        statusText = '正在下载...';
+        // 根据阶段显示更细腻的文案
+        switch (widget.task.stage) {
+          case TaskStage.analyzing:
+            statusText = '正在解析媒体...';
+            break;
+          case TaskStage.merging:
+            statusText = '正在合并/转换...';
+            break;
+          case TaskStage.completing:
+            statusText = '正在收尾...';
+            break;
+          case TaskStage.downloading:
+          default:
+            statusText = '正在下载...';
+        }
         break;
       case TaskStatus.completed:
         statusIconData = Icons.check_circle_rounded;
@@ -161,25 +175,47 @@ class _TaskCardState extends State<TaskCard> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: progress.percentage,
+                        // 解析或合并阶段显示不确定进度条，除非已有确切百分比
+                        value: (widget.task.stage == TaskStage.analyzing || widget.task.stage == TaskStage.merging) 
+                                && progress.percentage == 0 
+                               ? null 
+                               : progress.percentage,
                         minHeight: 8,
                         backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
                         valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
+                    // 第一行：分片进度和百分比
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildInfoText(progress.segments, Icons.segment),
-                        _buildInfoText('${(progress.percentage * 100).toStringAsFixed(1)}%', Icons.percent),
+                        _buildInfoText(progress.segments, Icons.segment, label: '分片'),
+                        Text(
+                          '${(progress.percentage * 100).toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    // 第二行：大小对比
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        _buildInfoText('${progress.downloadedSize} / ${progress.totalSize}', Icons.sd_storage_outlined),
                         _buildInfoText(progress.speed, Icons.speed),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // 第三行：任务描述和 ETA
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: _buildInfoText(progress.taskDescription, Icons.info_outline, isSmall: true)),
                         _buildInfoText(progress.eta, Icons.timer),
                       ],
                     ),
@@ -193,18 +229,30 @@ class _TaskCardState extends State<TaskCard> {
     );
   }
 
-  Widget _buildInfoText(String text, IconData icon) {
+  Widget _buildInfoText(String text, IconData icon, {String? label, bool isSmall = false}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: Colors.black45),
+        Icon(icon, size: isSmall ? 10 : 13, color: Colors.black45),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
+        if (label != null) ...[
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: isSmall ? 10 : 12,
+              color: Colors.black38,
+            ),
+          ),
+        ],
+        Flexible(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: isSmall ? 10 : 12,
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
